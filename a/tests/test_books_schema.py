@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
+from typing import Callable, Type
 from uuid import UUID, uuid4
-from pytest import raises, mark
+from pytest import fixture, raises, mark
 from pydantic import BaseModel, Field, ValidationError, confloat, constr
 
 # core/books/models.py
@@ -23,7 +24,7 @@ class BookDB(Book):  # this is the model that will be stored in the database
 # core/books/database/repository.py
 class BookRepository(ABC):
     @abstractmethod
-    def create_book(self, book: Book) -> UUID:
+    def insert_book(self, book: Book) -> UUID:
         raise NotImplementedError
 
     @abstractmethod
@@ -38,7 +39,10 @@ class BookRepository(ABC):
 class InMemRepository(BookRepository):
     books: dict[UUID, BookDB] = dict()
 
-    def create_book(self, book: Book) -> UUID:
+    def insert_book(self, book: Book) -> UUID:
+        if not isinstance(book, Book):
+            raise TypeError(f"book must be of type {Book}")
+
         # convert the domain-level book to a database-level book
         book_db = BookDB(**book.dict())
 
@@ -57,25 +61,35 @@ class InMemRepository(BookRepository):
 # test/test_books_schema.py
 
 
-def test_book_repository():
-    repo = InMemRepository()
-    assert isinstance(repo, BookRepository)
+@fixture()
+def book_repository() -> BookRepository:
+    return InMemRepository()
 
-    # create a new book
-    book = Book(title="This is a nice book",
+
+@fixture()
+def book_input() -> Book:
+    return Book(title="This is a nice book",
                 author="Jane Appleseed", price=18.99, year=1856)
 
+
+def test_insert_book(book_repository: BookRepository, book_input: Book):
     # add the book to the database
-    _ = repo.create_book(book)
+    _ = book_repository.insert_book(book_input)
 
     # get list of books from the database
-    books = repo.get_book_list()
+    books = book_repository.get_book_list()
 
     assert len(books) == 1
-    assert books[0].title == book.title
-    assert books[0].author == book.author
-    assert books[0].price == book.price
-    assert books[0].year == book.year
+    assert books[0].title == book_input.title
+    assert books[0].author == book_input.author
+    assert books[0].price == book_input.price
+    assert books[0].year == book_input.year
+
+
+def test_invalid_book(book_repository: BookRepository):
+    with raises(TypeError):
+        book_input = dict(title="This is a nice book")
+        _ = book_repository.insert_book(book_input)
 
 
 @mark.parametrize("schema", [
