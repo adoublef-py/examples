@@ -37,7 +37,10 @@ class BookRepository(ABC):
 
 
 class InMemRepository(BookRepository):
-    books: dict[UUID, BookDB] = dict()
+    books: dict[UUID, BookDB]
+
+    def __init__(self):
+        self.books = dict()
 
     def insert_book(self, book: Book) -> UUID:
         if not isinstance(book, Book):
@@ -62,17 +65,13 @@ class InMemRepository(BookRepository):
 
 
 @fixture()
-def book_repository() -> BookRepository:
-    return InMemRepository()
-
-
-@fixture()
 def book_input() -> Book:
     return Book(title="This is a nice book",
                 author="Jane Appleseed", price=18.99, year=1856)
 
 
-def test_insert_book(book_repository: BookRepository, book_input: Book):
+def test_insert_book(book_input: Book):
+    book_repository = InMemRepository()
     # add the book to the database
     _ = book_repository.insert_book(book_input)
 
@@ -86,10 +85,16 @@ def test_insert_book(book_repository: BookRepository, book_input: Book):
     assert books[0].year == book_input.year
 
 
-def test_invalid_book(book_repository: BookRepository):
+def test_invalid_book():
+    book_repository = InMemRepository()
+
     with raises(TypeError):
         book_input = dict(title="This is a nice book")
         _ = book_repository.insert_book(book_input)
+
+    books = book_repository.get_book_list()
+
+    assert len(books) == 0
 
 
 @mark.parametrize("schema", [
