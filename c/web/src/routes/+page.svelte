@@ -1,28 +1,26 @@
-<h1>Welcome to SvelteKit</h1>
-<p>Visit <a href="https://kit.svelte.dev">kit.svelte.dev</a> to read the documentation</p>
-
-<button on:click={handleClientSide}>Client-side</button>
-
-<!-- forms are a way to interact with the server -->
-<form on:submit|preventDefault={handleServerSide}>
-    <button type="submit">Server-side</button>
-</form>
-
 <script lang="ts">
-    async function handleClientSide() {
-        const response = await fetch("http://localhost:8000/client-side");
-        const data = await response.json();
-        console.log(data);
-    }
+    import { enhance } from "$app/forms"
+    import type { ActionData, PageData } from "./$types"
 
-    async function handleServerSide(e: Event){
-        const formEl = e.target as HTMLFormElement;
-
-        const response = await fetch(formEl.action, {
-            method: formEl.method,
-        });
-
-        const data = await response.json();
-        console.log(data);
-    }
+    export let data: PageData
+    // export let form: ActionData //if there are errors, print them
 </script>
+
+<ul>
+    {#each data.todos as todo}
+        <li>
+            <p>{todo.title}</p>
+            <p>{todo.description}</p>
+            <form method="POST" action="?/completed">
+                <input type="hidden" name="id" value="{todo.id}" />
+                <button type="submit">Completed</button>
+            </form>    
+        </li>
+    {/each}
+</ul>
+
+<form method="POST" action="?/create" use:enhance>
+    <input name="title" required/>
+    <input name="description" />
+    <button type="submit">Add Todo</button>
+</form>

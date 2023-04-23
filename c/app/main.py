@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .internal.routes import router as internal_router
+from .internal.todos.routes import router as todos_router
 
 origins = [
     "http://localhost:5173",
@@ -16,4 +16,4 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(internal_router)
+app.include_router(todos_router, prefix="/todos")
