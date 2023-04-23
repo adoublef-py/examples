@@ -15,8 +15,8 @@ class User(BaseModel):
             raise ValueError("passwords do not match")
         return v
 
-    def to_credentials(self): return users.Credentials(
-        email=self.email, password=self.password.encode())
+    def to_credentials(self):
+        return users.parse_credentials(email=self.email, password=self.password)
 
     def to_user(self): return users.User(username=self.username)
 
