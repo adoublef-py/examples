@@ -87,6 +87,13 @@ class PostgresRepository(UserRepository):
             password=credentials.password,
         )
 
+        try:
+            self.db.add(account)
+            self.db.commit()
+        except Exception as e:
+            self.db.rollback()
+            raise e
+
         profile = Profile(
             id=user.id,
             username=user.username,
@@ -94,13 +101,6 @@ class PostgresRepository(UserRepository):
             photo_url=user.photo_url,
             account=account,
         )
-
-        try:
-            self.db.add(account)
-            self.db.commit()
-        except Exception as e:
-            self.db.rollback()
-            raise e
 
         try:
             self.db.add(profile)
@@ -132,7 +132,10 @@ class PostgresRepository(UserRepository):
             raise Exception("User not found")
 
         # NOTE: possible exception caused here
-        users.compare_password(password, account.password)
+        credentials = users.Credentials(
+            email=account.email, password=account.password)
+
+        credentials.compare_password(password)
 
         statement = select(Profile).where(Profile.account_id == account.id)
         profile = self.db.exec(statement).first()

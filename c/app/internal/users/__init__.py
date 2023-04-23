@@ -31,11 +31,6 @@ class User:
     photo_url: str | None = None
 
 
-def compare_password(password: str, password_hash: bytes):
-    if not checkpw(password=password.encode(), hashed_password=password_hash):
-        raise ValueError("passwords do not match")
-
-
 def parse_credentials(email: str, password: str) -> Credentials:
     """
     Parse a user's email and password into a `Credentials` object.
