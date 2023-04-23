@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
 from uuid import uuid4, UUID
-from sqlmodel import SQLModel, Field
+from sqlmodel import SQLModel, Field, Session, select
 
 from ... import users
 
@@ -33,12 +33,7 @@ class Profile(SQLModel, table=True):
         return cls(id=user.id, username=user.username, bio=user.bio, photo_url=user.photo_url)
 
     def to_user(self) -> users.User:
-        return users.User(
-            id=self.id,
-            username=self.username,
-            bio=self.bio,
-            photo_url=self.photo_url,
-        )
+        return users.User(id=self.id, username=self.username, bio=self.bio, photo_url=self.photo_url)
 
 
 class UserRepository(ABC):
@@ -46,6 +41,41 @@ class UserRepository(ABC):
     def insert_user(self, user: users.User, credentials: users.Credentials) -> users.User:
         pass
 
+    @abstractmethod
+    def fetch_user_list(self) -> list[users.User]:
+        pass
 
-class InMemRepository(UserRepository):
-    pass
+    @abstractmethod
+    def find_user_by_id(self, id: UUID) -> users.User:
+        pass
+
+
+class PostgresRepository(UserRepository):
+    db: Session
+
+    def __init__(self, db: Session):
+        self.db = db
+
+    def insert_user(self, user: users.User, credentials: users.Credentials) -> users.User:
+        account = Account.from_credentials(credentials)
+        profile = Profile.from_user(user)
+
+        self.db.add(account)
+        self.db.add(profile)
+
+        self.db.commit()
+
+        return user
+
+    def fetch_user_list(self):
+        statement = select(Profile)
+        profiles = self.db.exec(statement).fetchall()
+
+        # for profile in profiles: yield profile.to_user()
+        return [profile.to_user() for profile in profiles]
+
+    def find_user_by_id(self, id: UUID) -> users.User:
+        statement = select(Profile).where(Profile.id == id)
+        profile = self.db.exec(statement).first()
+
+        return profile.to_user()

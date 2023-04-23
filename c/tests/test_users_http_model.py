@@ -2,7 +2,6 @@ from pytest import raises
 from pydantic import ValidationError
 
 from app.internal.users import http
-from app.internal.users.database import InMemRepository
 
 
 def test_user_invalid():
@@ -47,7 +46,3 @@ def test_domain_mapping_valid():
 
     assert author.username == "test"
     assert author.id is not None
-
-
-def test_in_mem_repository():
-    repo = InMemRepository()
