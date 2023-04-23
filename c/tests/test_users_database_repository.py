@@ -1,14 +1,16 @@
-from pytest import fixture, FixtureRequest
+from pytest import fixture, FixtureRequest, raises
 from testcontainers.postgres import PostgresContainer
 from uuid import UUID
-from sqlmodel import SQLModel, Session, create_engine, select
+from sqlmodel import SQLModel, Session, create_engine
 
-from app.internal.users.database import Account, Profile, PostgresRepository, UserRepository
-from app.internal import users
+from app.internal.users.database import PostgresRepository, UserRepository
+from app.internal.users import User, Credentials, parse_credentials
 
 
+# https://docs.pytest.org/en/6.2.x/fixture.html
+# https://betterprogramming.pub/understand-5-scopes-of-pytest-fixtures-1b607b5c19ed
 @fixture(scope="session")
-def repo():
+def user_repo():
     with PostgresContainer() as postgres:
         engine = create_engine(postgres.get_connection_url())
 
@@ -18,56 +20,42 @@ def repo():
             yield PostgresRepository(session)
 
 
-def test_insert_author(repo: UserRepository):
-    user = users.User(username="test")
-    credentials = users.Credentials(
-        email="test@mail.com", password=b"password")
+def test_insert_author_valid(user_repo: UserRepository):
+    user = User(username="test")
+    credentials = parse_credentials(
+        email="test@mail.com", password="password")
 
-    repo.insert_user(user, credentials)
+    user_repo.insert_user(user, credentials)
 
 
-def test_get_user_list(repo: UserRepository):
+def test_insert_author_duplicate_username(user_repo: UserRepository):
+    user = User(username="test")
+    credentials = parse_credentials(
+        email="test-1@mail.com", password="password")
+
+    with raises(Exception):
+        user_repo.insert_user(user, credentials)
+
+def test_insert_author_duplicate_email(user_repo: UserRepository):
+    user = User(username="test-1")
+    credentials = parse_credentials(
+        email="test@mail.com", password="password")
+
+    with raises(Exception):
+        user_repo.insert_user(user, credentials)
+
+
+def test_get_user_list_valid(user_repo: UserRepository):
     # retrieve the user_list
-    user_list = repo.fetch_user_list()
+    user_list = user_repo.fetch_user_list()
     assert len(user_list) == 1
 
     # get the user by id
-    found = repo.find_user_by_id(user_list[0].id)
+    found = user_repo.find_user_by_id(user_list[0].id)
     assert found.username == "test"
 
 
-def insert_user(db: Session, user: users.User, credentials: users.Credentials) -> users.User:
-    """
-    Insert a new user into the database.
-    """
-    account = Account.from_credentials(credentials)
-    profile = Profile.from_user(user)
-
-    db.add(account)
-    db.add(profile)
-
-    db.commit()
-
-    return user
-
-
-def fetch_user_list(db: Session):
-    """
-    Get a list of all users.
-    """
-    statement = select(Profile)
-    profiles = db.exec(statement).fetchall()
-
-    for profile in profiles:
-        print(profile)
-
-    return [profile.to_user() for profile in profiles]
-
-
-def find_user_by_id(db: Session, id: UUID) -> users.User:
-    """
-    Find a user by their email address.
-    """
-    statement = select(Profile).where(Profile.id == id)
-    profile = db.exec(statement).first()
-    return profile.to_user()
+def test_get_user_by_credentials_valid(user_repo: UserRepository):
+    # get the user by credentials
+    user_repo.find_user_by_credentials(
+        email="test@mail.com", password="password")

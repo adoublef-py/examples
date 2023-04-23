@@ -8,16 +8,18 @@ class Credentials:
     email: str
     password: bytes
 
-    def __post_init__(self):
-        """
-        The password needs to be stored as a hash, not in plain text.
-        Therefore we use the `__post_init__` hook to hash the password.
-        """
-        self.password = hashpw(self.password, gensalt())
-
     def compare_password(self, password: str):
         if not checkpw(password.encode(), self.password):
             raise ValueError("passwords do not match")
+
+    @classmethod
+    def parse(cls, email: str, password: str) -> "Credentials":
+        """
+        Parse a user's email and password into a `Credentials` object.
+        It will validate the email and hash the password.
+        """
+        hash = hashpw(password=password.encode(), salt=gensalt())
+        return cls(email=email, password=hash)
 
 
 @dataclass
@@ -27,3 +29,17 @@ class User:
     id: UUID = field(default_factory=uuid4)
     bio: str | None = None
     photo_url: str | None = None
+
+
+def compare_password(password: str, password_hash: bytes):
+    if not checkpw(password=password.encode(), hashed_password=password_hash):
+        raise ValueError("passwords do not match")
+
+
+def parse_credentials(email: str, password: str) -> Credentials:
+    """
+    Parse a user's email and password into a `Credentials` object.
+    It will validate the email and hash the password.
+    """
+    hash = hashpw(password=password.encode(), salt=gensalt())
+    return Credentials(email=email, password=hash)
