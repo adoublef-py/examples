@@ -11,7 +11,7 @@
         <li>
             <p>{todo.title}</p>
             <p>{todo.description}</p>
-            <form method="POST" action="?/completed">
+            <form method="POST" action="?/completed" use:enhance>
                 <input type="hidden" name="id" value="{todo.id}" />
                 <button type="submit">Completed</button>
             </form>    

@@ -1,10 +1,9 @@
-from pytest import fixture, FixtureRequest, raises
+from pytest import fixture, raises
 from testcontainers.postgres import PostgresContainer
-from uuid import UUID
 from sqlmodel import SQLModel, Session, create_engine
 
 from app.internal.users.database import PostgresRepository, UserRepository
-from app.internal.users import User, Credentials, parse_credentials
+from app.internal.users import User, parse_credentials
 
 
 # https://docs.pytest.org/en/6.2.x/fixture.html

@@ -11,7 +11,7 @@ def test_user_invalid():
     }
 
     with raises(ValidationError):
-        http.User(**user_input)
+        http.Register(**user_input)
 
 
 def test_user_valid():
@@ -22,7 +22,7 @@ def test_user_valid():
         "password_confirm": "password",
     }
 
-    user = http.User(**user_input)
+    user = http.Register(**user_input)
     assert user.email == "test@mail.com"
 
 
@@ -34,7 +34,7 @@ def test_domain_mapping_valid():
         "password_confirm": "password",
     }
 
-    user = http.User(**user_input)
+    user = http.Register(**user_input)
     credentials, author = user.to_domain()
 
     # invalid password should throw an error
