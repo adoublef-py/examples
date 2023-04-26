@@ -68,7 +68,7 @@ class UserRepository(ABC):
         pass
 
     @abstractmethod
-    def find_user_by_credentials(self, email: str, password: str) -> users.User:
+    def find_user_by_auth(self, email: str, password: str) -> users.User:
         """
         Find a user by their email.
         """
@@ -124,7 +124,7 @@ class PostgresRepository(UserRepository):
 
         return profile.to_user()
 
-    def find_user_by_credentials(self, email: str, password: str) -> users.User:
+    def find_user_by_auth(self, email: str, password: str) -> users.User:
         statement = select(Account).where(Account.email == email)
         account = self.db.exec(statement).first()
 

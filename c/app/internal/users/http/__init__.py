@@ -1,3 +1,4 @@
+from datetime import timedelta
 from fastapi import APIRouter
 from pydantic import BaseModel, Field, validator
 
@@ -11,7 +12,7 @@ class Register(BaseModel):
     email: str = Field(max_length=60)
     username: str = Field(max_length=30)
     password: str = Field(max_length=30)
-    password_confirm: str # this may not exist in the response body
+    password_confirm: str  # this may not exist in the response body
 
     @validator("password_confirm")
     def passwords_match(cls, v: str, values: dict, **kwargs):

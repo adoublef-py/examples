@@ -56,5 +56,5 @@ def test_get_user_list_valid(user_repo: UserRepository):
 
 def test_get_user_by_credentials_valid(user_repo: UserRepository):
     # get the user by credentials
-    user_repo.find_user_by_credentials(
+    user_repo.find_user_by_auth(
         email="test@mail.com", password="password")
