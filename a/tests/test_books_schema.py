@@ -4,73 +4,14 @@ from uuid import UUID, uuid4
 from pytest import fixture, raises, mark
 from pydantic import BaseModel, Field, ValidationError, confloat, constr
 
-# core/books/models.py
+from core.books.database.repository import InMemRepository
+from core.books import book
 
 
-class Book(BaseModel):  # this is the domain model
-    id: UUID | None = uuid4()
-    title: str
-    author: constr(min_length=1, regex="[A-Za-z ,.'-]+$")
-    price: confloat(gt=0)
-    year: int | None = None
+def test_insert_book():
+    book_input = book.Book(title="This is a nice book",
+                           author="Jane Appleseed", price=18.99, year=1856)
 
-# core/books/database/models.py
-
-
-class BookDB(Book):  # this is the model that will be stored in the database
-    id: UUID = Field(default_factory=uuid4())
-
-
-# core/books/database/repository.py
-class BookRepository(ABC):
-    @abstractmethod
-    def insert_book(self, book: Book) -> UUID:
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_book_by_id(self, id: UUID) -> Book:
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_book_list(self) -> list[Book]:
-        raise NotImplementedError
-
-
-class InMemRepository(BookRepository):
-    books: dict[UUID, BookDB]
-
-    def __init__(self):
-        self.books = dict()
-
-    def insert_book(self, book: Book) -> UUID:
-        if not isinstance(book, Book):
-            raise TypeError(f"book must be of type {Book}")
-
-        # convert the domain-level book to a database-level book
-        book_db = BookDB(**book.dict())
-
-        # save the book to the database
-        self.books[book_db.id] = book_db
-
-        return book_db.id
-
-    def get_book_by_id(self, id: UUID) -> Book:
-        pass
-
-    def get_book_list(self) -> list[Book]:
-        """get the books from the database and return a list of domain-level book objects"""
-        return [Book(**book.dict()) for book in self.books.values()]
-
-# test/test_books_schema.py
-
-
-@fixture()
-def book_input() -> Book:
-    return Book(title="This is a nice book",
-                author="Jane Appleseed", price=18.99, year=1856)
-
-
-def test_insert_book(book_input: Book):
     book_repository = InMemRepository()
     # add the book to the database
     _ = book_repository.insert_book(book_input)
@@ -103,16 +44,16 @@ def test_invalid_book():
     dict(title="This is another nice book", author="John Smith", price=18.99)
 ])
 def test_create_book_ok(schema: dict):
-    book = Book(
+    book_input = book.Book(
         title=schema.get("title"),
         author=schema.get("author"),
         price=schema.get("price"),
         year=schema.get("year"),
     )
-    assert book.title == schema.get("title")
-    assert book.author == schema.get("author")
-    assert book.price == schema.get("price")
-    assert book.year == schema.get("year")
+    assert book_input.title == schema.get("title")
+    assert book_input.author == schema.get("author")
+    assert book_input.price == schema.get("price")
+    assert book_input.year == schema.get("year")
 
 
 @mark.parametrize("schema", [
@@ -122,7 +63,7 @@ def test_create_book_ok(schema: dict):
 ])
 def test_create_book_not_ok(schema: dict):
     with raises(ValidationError):
-        Book(
+        book.Book(
             title=schema.get("title"),
             author=schema.get("author"),
             price=schema.get("price"),
