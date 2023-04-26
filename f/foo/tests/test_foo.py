@@ -1,4 +1,4 @@
-from foo.foo import Foo
+from ..foo import Foo
 from bar.bar import bar
 
 
